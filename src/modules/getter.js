@@ -1,6 +1,7 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const fs = require('fs');
+const { url } = require('inspector');
 
 
 // Function to get HTML code
@@ -38,80 +39,141 @@ function parseTable(table) {
 }
 
 // Main function
+// async function totalSchedule(day, month) {
+//     try {
+//         if (typeof day === "string" && day.match(',')) {
+//             let days = day.split(',');
+//             const schedule = coupleDates(days[0], days[1], month);
+//             return {
+//                 "status": 200,
+//                 "details": "Case completed",
+//                 schedule: schedule
+//             };
+//         }
+//         const probel = '%20';
+//         let url;
+//         let html;
+//         url = `https://www.pilot-ipek.ru/raspo/${day}${probel}${month}`;
+//         html = await fetchHTML(url);
+//         if (!html) {
+//             url = `https://www.pilot-ipek.ru/raspo/${day}${probel}${probel}${month}`;
+//             console.log("Error with URL, possibly missing space, trying to add...");
+//             html = await fetchHTML(url);
+//         }
+//         if(!html) {
+//             const schedule = coupleDates(day, day+1, month);
+//             return {
+//                 "status": 200,
+//                 "details": "Case completed",
+//             };
+//         }
+//         if (!html) {
+//             console.error("Repeated error, please check input correctness");
+//             return {
+//                 status: "Repeated error, please check input correctness"
+//             };
+//         }
+//         console.log(url);
+//         const $ = cheerio.load(html);
+//         const schedule = [];
+//         $('table').each((tableIndex, table) => {
+//             const tableData = parseTable(table);
+//             schedule.push(...tableData);
+//         });
+//         console.log({ status: 200, details: `Full schedule sent for ${day} ${month}` });
+//         fs.writeFileSync(`data/schedule${day}${month}.json`, JSON.stringify(schedule, null, 2));
+//         return schedule;
+//     } catch (error) {
+//         if (error.response && error.response.status === 400) {
+//             const probel = '%20';
+//             let url = `https://www.pilot-ipek.ru/raspo/${day}${probel}${probel}${month}`;
+//             console.log("Received status 400, trying to add another space...", url);
+//             let html = await fetchHTML(url);
+//             if(!html) {
+//                 const schedule = coupleDates(day, day+1, month);
+//                 return {
+//                     "status": 200,
+//                     "details": "Case completed",
+//                     schedule: schedule
+//                 };
+//             }
+//             const $ = cheerio.load(html);
+//             const schedule = [];
+//             $('table').each((tableIndex, table) => {
+//                 const tableData = parseTable(table);
+//                 schedule.push(...tableData);
+//             });
+//             console.log({ status: 200, details: `Full schedule sent for ${day} ${month}` });
+//             fs.writeFileSync(`data/schedule${day}${month}.json`, JSON.stringify(schedule, null, 2));
+//             return schedule;
+//         }
+//         console.error('Error getting data');
+//         return {
+//             status: "Error getting data",
+//         };
+//     }
+// }
 async function totalSchedule(day, month) {
     try {
-        if (typeof day === "string" && day.match(',')) {
+        console.log(day);
+        if (typeof day === "string" && day.includes(',')) {
             let days = day.split(',');
+            console.log(day);
             const schedule = coupleDates(days[0], days[1], month);
             return {
-                "status": 200,
-                "details": "Case completed",
-                schedule: schedule
+                "details": `Расписание за ${days[0]} ${days[1]} загружено`    
             };
         }
+
         const probel = '%20';
-        let url;
-        let html;
-        url = `https://www.pilot-ipek.ru/raspo/${day}${probel}${month}`;
-        html = await fetchHTML(url);
+        let url =` https://www.pilot-ipek.ru/raspo/${day}${probel}${month}`
+        let html = await fetchHTML(url);
+
         if (!html) {
-            url = `https://www.pilot-ipek.ru/raspo/${day}${probel}${probel}${month}`;
+            url = `https://www.pilot-ipek.ru/raspo/${day}${probel}${probel}${month}`
             console.log("Error with URL, possibly missing space, trying to add...");
             html = await fetchHTML(url);
         }
-        if(!html) {
-            const schedule = coupleDates(day, day+1, month);
-            return {
-                "status": 200,
-                "details": "Case completed",
-                schedule: schedule
-            };
-        }
-        if (!html) {
-            console.error("Repeated error, please check input correctness");
-            return {
-                status: "Repeated error, please check input correctness"
-            };
-        }
-        console.log(url);
+
         const $ = cheerio.load(html);
         const schedule = [];
         $('table').each((tableIndex, table) => {
             const tableData = parseTable(table);
             schedule.push(...tableData);
         });
+
         console.log({ status: 200, details: `Full schedule sent for ${day} ${month}` });
         fs.writeFileSync(`data/schedule${day}${month}.json`, JSON.stringify(schedule, null, 2));
-        return schedule;
+        return {
+            "details": `Расписание за ${day} ${month} загружено успешно`
+        };
+    
+
     } catch (error) {
+        let html
+        let probel = '%20'
+        let url;
         if (error.response && error.response.status === 400) {
-            const probel = '%20';
-            let url = `https://www.pilot-ipek.ru/raspo/${day}${probel}${probel}${month}`;
-            console.log("Received status 400, trying to add another space...", url);
-            let html = await fetchHTML(url);
-            if (!html) {
-                console.error("Error on retry, please check input correctness");
-                return {
-                    status: "Error on retry, please check input correctness",
-                };
-            }
+            url = `https://www.pilot-ipek.ru/raspo/${day}${probel}${probel}${month}`
+            console.log("Error with URL, possibly missing space, trying to add...");
+            html = await fetchHTML(url);
             const $ = cheerio.load(html);
             const schedule = [];
             $('table').each((tableIndex, table) => {
                 const tableData = parseTable(table);
                 schedule.push(...tableData);
             });
-            console.log({ status: 200, details: `Full schedule sent for ${day} ${month}` });
+
             fs.writeFileSync(`data/schedule${day}${month}.json`, JSON.stringify(schedule, null, 2));
-            return schedule;
+            return {
+                "details": `Расписание за ${day} число ${month} загружено успешно`
+            };
+            }
         }
-        console.error('Error getting data');
-        return {
-            status: "Error getting data",
-            error: error.message,
-        };
+        console.error('Error getting data:', error);
+        return { status: "Error getting data" };
     }
-}
+
 
 async function coupleDates(date1, date2, month) {
     const probel = '%20'
@@ -149,4 +211,4 @@ async function coupleDates(date1, date2, month) {
     }
 }
 
-module.exports = { fetchHTML, parseTable, totalSchedule };
+module.exports = { fetchHTML, parseTable, totalSchedule,coupleDates };
